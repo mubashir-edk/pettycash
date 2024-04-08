@@ -1,0 +1,35 @@
+{% extends 'index.html' %}
+
+{% block head %}
+    <title>Menu</title>
+{% endblock head %}
+
+{% block content %}
+
+    <div class="grid gap-20 w-full justify-center text-center mt-12">
+
+        <div>
+            <span class="font-bold text-4xl ">Menu</span>
+        </div>
+
+        {% if request.user.is_staff %}
+        <div>
+            <a href="{% url "pettycash_app:view_opening_balance" %}" class="bg-blue-600 text-white rounded-lg p-6 hover:bg-blue-900">Opening Balance</a>
+        </div>
+        {% endif %}
+
+        <div>
+            <a href="{% url "pettycash_app:view_pettycash" %}" class="bg-blue-600 text-white rounded-lg p-6 hover:bg-blue-900">Petty Cash</a>
+        </div>
+
+        <div>
+            <a href="{% url "pettycash_app:view_federal_pettycash" %}" class="bg-blue-600 text-white rounded-lg p-6 hover:bg-blue-900">Federal Bank</a>
+        </div>
+
+        <div>
+            <a href="{% url "pettycash_app:view_sbi_pettycash" %}" class="bg-blue-600 text-white rounded-lg p-6 hover:bg-blue-900">SBI Bank</a>
+        </div>
+        
+    </div>
+
+{% endblock content %}

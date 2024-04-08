@@ -1,0 +1,415 @@
+{% extends 'index.html' %}
+{% load static %}
+
+{% block head %}
+    <title>View SBI Bank PettyCash</title>
+{% endblock head %}
+
+{% block content %}
+
+    <div class="flex justify-between items-end">
+        <span class="text-2xl font-bold flex self-end">SBI Bank</span>
+        <div class="text-red-600">
+            <span class="font-bold me-1">Closing Balance:</span>
+            <span id="OBAmount" class="font-bold text-xl"></span>
+        </div>
+        <div class="flex gap-x-1">
+            {% if request.user.is_staff %}
+            <a href="{% url "pettycash_app:sbi_balance_sheet" %}"><button class="bg-green-700 p-1 px-2 mb-1 text-base font-bold rounded text-white cursor-pointer">Balance Sheet</button></a>
+            <button id="generatePDF" data-modal-target="pdf-modal" data-modal-toggle="pdf-modal" class="block bg-green-600 p-1 px-2 mb-1 text-base font-bold rounded text-white cursor-pointer">Generate PDF</button>
+            <a href="{% url "pettycash_app:category" %}"><button class="bg-blue-700 p-1 px-2 mb-1 text-base font-bold rounded text-white cursor-pointer">Category</button></a>
+            {% endif %}
+            <a href="{% url "pettycash_app:create_sbi_pettycash" %}"><button class="bg-blue-700 p-1 px-2 mb-1 text-base font-bold rounded text-white cursor-pointer">Create</button></a>
+        </div>
+
+        <!-- PDF modal -->
+        <div id="pdf-modal" data-modal-backdrop="static" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+            <div class="relative p-4 w-full max-w-md max-h-full">
+                <!-- Modal content -->
+                <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+                    <!-- Modal header -->
+                    <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                            Generate PDF
+                        </h3>
+                        <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-toggle="pdf-modal">
+                            <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                            </svg>
+                            <span class="sr-only">Close modal</span>
+                        </button>
+                    </div>
+                    <!-- Modal body -->
+                    <div class="grid gap-4 justify-center mt-3">
+
+                        <form method="post" action="{% url "pettycash_app:pettycash_all_pdf" %}" class="flex justify-center">
+                        {% csrf_token %}
+                            <input type="hidden" name="allTypePettycash" value="sbi_bank" />
+                            <button type="submit" class="block bg-green-600 p-1 px-2 mb-1 text-base font-bold rounded text-white cursor-pointer">All Vouchers</button>
+                        </form>
+
+                        <div class="text-center font-bold text-lg text-white">
+                            <span>OR</span>
+                        </div>
+
+                        <form method="post" action="{% url "pettycash_app:pettycash_custom_pdf" %}" class="mb-3">
+                        {% csrf_token %}
+                            <div>
+                                <input type="hidden" name="pettycashType" value="sbi_bank" />
+                                <label for="VoucherCodesSelect" class="block text-sm font-bold text-white">From Voucher:</label>
+                                <div class="flex items-center gap-3 mt-1">
+                                    <select name="VoucherCodesSelect" id="VoucherCodesSelect" class="bg-white text-gray-900 text-sm rounded-lg border-none focus:ring-blue-500 block w-full p-2.5">
+                                        <option value="" selected>select</option>
+                                        {% for voucher_code in sbi_pettycashes %}
+                                            <option value="{{voucher_code.voucher_code}}">{{voucher_code.voucher_code}}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button id="customPdfSubmit" class="block bg-green-600 p-1 px-2 mb-1 text-base font-bold rounded text-white cursor-pointer">Generate</button>
+                                </div>
+                            </div>
+                        </form>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <hr class="border dark:border-gray-800">
+
+    <div class="flex justify-between gap-x-12 mt-2 p-1 rounded-lg pl-24 pr-24 bg-gray-900">
+        <div class="flex items-center gap-x-2">
+            <label for="fromDate" class="block text-lg font-medium text-white">From:</label>
+            <input type="date" id="fromDate" name="fromDate" class="border border-gray-300 rounded-md focus:outline-none focus:border-blue-500">
+        </div>
+        <div class="flex items-center gap-x-2">
+            <label for="toDate" class="block text-lg font-medium text-white">To:</label>
+            <input type="date" id="toDate" name="toDate" class="border border-gray-300 rounded-md focus:outline-none focus:border-blue-500">
+        </div>
+        <div class="flex items-center gap-x-2">
+            <label for="cashType" class="block text-lg font-medium text-white">Type:</label>
+            <select id="cashType" name="cashType" class="border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 p-2">
+                <option value="All">All</option>
+                <option value="Cash In">Cash In</option>
+                <option value="Cash Out">Cash Out</option>
+            </select>
+        </div>
+        <div class="flex items-center gap-x-2">
+            <button id="filterButton" TYPE="submit" class="block text-lg font-medium bg-white rounded-lg p-1 px-4 hover:bg-gray-500">Filter</button>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        {% if sbi_pettycash_exists %}
+
+        <div class="flex justify-between mb-1">
+            <div class="flex items-end">
+                <span class="font-medium">No. of rows</span>
+                <select id="showEntriesSelect" class="ms-1 px-2 py-1 w-18 h-8 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500">
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+            <input type="text" id="searchInput" placeholder="Search..." class="px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500">
+        </div>
+
+        
+        <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
+            <table id="pettycash_table" class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                <thead id="pettycash_table_head" class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-center"></th>
+                        <th scope="col" class="px-6 py-3">Voucher Code</th>
+                        <th scope="col" class="px-6 py-3">Paid/Received</th>
+                        <th scope="col" class="px-6 py-3">Created_on</th>
+                        <th scope="col" class="px-6 py-3">Category</th>
+                        <th scope="col" class="px-6 py-3">Cash Flow</th>
+                        <th scope="col" class="px-6 py-3">Amount</th>
+                        <th scope="col" class="px-6 py-3">Description</th>
+                        <th scope="col" class="px-6 py-3">Signature</th>
+                        <th scope="col" class="px-6 py-3"></th>
+                    </tr>
+                </thead>
+                <tbody id="pettycash_table_body">
+                    {% for sbi_pettycash in sbi_pettycashes %}
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                            <th scope="row" class="px-6 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white text-center"><a href="{% url "pettycash_app:each_sbi_pettycash" sbi_pettycash.id %}">{{ forloop.counter }}</a></th>
+                            <th scope="row" class="px-6 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white"><a href="{% url "pettycash_app:each_sbi_pettycash" sbi_pettycash.id %}">{{ sbi_pettycash.voucher_code }}</a></th>
+                            <th scope="row" class="px-6 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white uppercase"><a href="{% url "pettycash_app:each_sbi_pettycash" sbi_pettycash.id %}">{{ sbi_pettycash.to_or_from }}</a></th>
+                            <th scope="row" class="px-6 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white"><a href="{% url "pettycash_app:each_sbi_pettycash" sbi_pettycash.id %}">{{ sbi_pettycash.created_date }}</a></th>
+                            <th scope="row" class="px-6 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white"><a href="{% url "pettycash_app:each_sbi_pettycash" sbi_pettycash.id %}">{{ sbi_pettycash.category }}</a></th>
+                            <th scope="row" class="px-6 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white"><a href="{% url "pettycash_app:each_sbi_pettycash" sbi_pettycash.id %}">{{ sbi_pettycash.cash_flow }}</a></th>
+                            <th scope="row" class="px-6 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white"><a href="{% url "pettycash_app:each_sbi_pettycash" sbi_pettycash.id %}">&#8377; {{ sbi_pettycash.amount }}</a></th>
+                            <th scope="row" class="px-6 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white"><a href="{% url "pettycash_app:each_sbi_pettycash" sbi_pettycash.id %}">{{ sbi_pettycash.description }}</a></th>
+                            <th scope="row" class="px-6 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white"><a href="{% url "pettycash_app:each_sbi_pettycash" sbi_pettycash.id %}">
+
+                                {% if sbi_pettycash.image %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-green-600">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd" />
+                                    </svg>
+                                {% else %}
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 text-red-600">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" />
+                                    </svg>                                  
+                                {% endif %}
+
+                            </a></th>
+                            <th scope="row" class="px-6 py-3 flex justify-end font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                                <div class="flex gap-x-2">
+                                    <!-- edit icon -->
+                                    <div data-modal-target="update-modal" data-modal-toggle="update-modal" data-categoryId="{{category.id}}" class="category-update-icon">
+                                        <a href="{% url "pettycash_app:update_sbi_pettycash" sbi_pettycash.id  %}">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="text-sky-600 w-4 h-4 cursor-pointer">
+                                                <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-8.4 8.4a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32l8.4-8.4Z" />
+                                                <path d="M5.25 5.25a3 3 0 0 0-3 3v10.5a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3V13.5a.75.75 0 0 0-1.5 0v5.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5V8.25a1.5 1.5 0 0 1 1.5-1.5h5.25a.75.75 0 0 0 0-1.5H5.25Z" />
+                                            </svg>
+                                        </a>
+                                    </div>
+                                </div>                                  
+                            </th>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div id="pagination" class="flex justify-center mt-6">
+            <!-- Pagination buttons will be added dynamically here -->
+        </div>
+
+        {% else %}
+            <div class="flex justify-center">
+                <span class="font-bold text-xl">No SBI Bank petty cash to view. <a href="{% url "pettycash_app:create_sbi_pettycash" %}" class="text-blue-700 cursor-pointer">Create</a> a petty cash.</span>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+
+        $(document).ready(function () {
+
+            $('#customPdfSubmit').click(function(event) {
+                if ($('#VoucherCodesSelect').val() == '') {
+                    alert('Select from voucher.');
+                    $('#generatePDF').trigger('click');
+                    return false;
+                }
+            });
+
+            function fetchDataAndPopulateTable() {
+                console.log($('#cashType').val());
+                $.ajax({
+                    url: '/filter_sbi_pettycash/',
+                    type: 'GET',
+                    data: {
+                        fromDate: $('#fromDate').val(),
+                        toDate: $('#toDate').val(),
+                        cashType: $('#cashType').val()
+                    },
+                    success: function(response) {
+                        if (response.data_exists) {
+                            $('#pettycash_table_body').empty(); // Clear existing table rows
+                            $.each(response.data, function(index, item) {
+                                // Append a new table row with the fetched data
+                                $('#pettycash_table_body').append(`
+                                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                        <th scope="row" class="px-6 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white text-center">${index + 1}</th>
+                                        <th scope="row" class="px-6 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white">${item.voucher_code}</th>
+                                        <th scope="row" class="px-6 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white">${item.created_date}</th>
+                                        <th scope="row" class="px-6 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white">${item.category}</th>
+                                        <th scope="row" class="px-6 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white">${item.cash_flow}</th>
+                                        <th scope="row" class="px-6 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white">${item.amount}</th>
+                                        <th scope="row" class="px-6 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white">${item.description}</th>
+                                    </tr>
+                                `);
+                            });
+                            if ($('#pettycash_table_head tr th').length > 7) {
+                                $('#pettycash_table_head tr th:last-child').remove();
+                            }
+                        } else {
+                            // Handle case where no data is returned
+                            $('#pettycash_table_body').empty().append('<tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"><th colspan="8" scope="row" class="px-6 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white text-center">No data available</th></tr>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error(error);
+                    }
+                });
+                
+            }
+    
+            // Call fetchDataAndPopulateTable initially and on filter button click
+            $('#filterButton').click(function() {
+
+                if ($('#fromDate').val() != '' && $('#toDate').val() != '') {
+                    fetchDataAndPopulateTable();
+                } else {
+                    alert('Select from and to date to filter.')
+                }
+            });
+
+
+
+            //fetch pettycash closing balance
+            $.ajax({
+                url: '{% url "pettycash_app:sbi_opening_balance" %}',
+                type: "GET",
+                dataType: "json",
+                success: function (data) {
+                    console.log("data");
+                    console.log(data.closing_balance);
+                    $('#OBAmount').text('\u20B9' + ' ' + data.closing_balance.balance);
+                },
+                error: function (error) {
+                    console.error(error);
+                }
+            });
+
+            //update
+            {% comment %} var updateServiceLinks = document.querySelectorAll('.category-update-icon');
+            updateServiceLinks.forEach(function(link) {
+                link.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    var category_id = link.getAttribute('data-categoryId');
+                    var category_name = link.getAttribute('data-categoryName');
+                    var category_glc = link.getAttribute('data-categoryGLCode');
+                    
+                    $('#categoryUpdateForm #formCategoryName').attr('value', category_name);
+                    $('#categoryUpdateForm #formCategoryCode').attr('value', category_glc);
+                    console.log($('#formServiceName'));
+        
+                    updateUrl = `/update_category/${category_id}/`;
+                    $('#categoryUpdateForm').attr('action', updateUrl)
+                });
+            }); {% endcomment %}
+
+            // Sort direction
+            var sortDirection = {};
+
+            // Function to sort table data
+            function sortTable(column, order) {
+                var $tbody = $('#pettycash_table tbody');
+                var rows = $tbody.find('tr').toArray();
+
+                // Sort the rows
+                rows.sort(function (a, b) {
+                    // Skip sorting for the first column
+                    if (column === 0) return 0;
+
+                    var valA = $(a).find('th').eq(column).text().trim();
+                    var valB = $(b).find('th').eq(column).text().trim();
+
+                    if (valA < valB) return order === 'asc' ? -1 : 1;
+                    if (valA > valB) return order === 'asc' ? 1 : -1;
+                    return 0;
+                });
+
+                // Append sorted rows to table
+                $tbody.empty().append(rows);
+            }
+
+            // Click event handler for table headers (excluding the first one)
+            $('#pettycash_table').on('click', 'th:not(:first)', function () {
+                var columnIndex = $(this).index();
+                var columnName = $(this).text().trim().toLowerCase();
+                var order = sortDirection[columnName] === 'asc' ? 'desc' : 'asc';
+
+                // Remove sorting indicators from other columns
+                $('#pettycash_table th').removeClass('sorted-asc sorted-desc');
+
+                // Set sorting indicator for the clicked column
+                $(this).addClass(order === 'asc' ? 'sorted-asc' : 'sorted-desc');
+
+                // Sort the table
+                sortTable(columnIndex, order);
+
+                // Update sort direction
+                sortDirection[columnName] = order;
+            });
+
+            // Search functionality
+            $('#searchInput').on('keyup', function() {
+                var searchText = $(this).val().toLowerCase();
+                var totalRows = $('#pettycash_table tbody tr').length;
+                
+                if (searchText === '') {
+                    // If search input is empty, re-run pagination
+                    var entries = parseInt($('#showEntriesSelect').val());
+                    var totalPages = Math.ceil(totalRows / entries);
+                    var currentPage = 1;
+                    
+                    showPage(currentPage, entries);
+                    generatePaginationButtons(totalPages, currentPage);
+                } else {
+                    $('#pettycash_table tbody tr').filter(function() {
+                        $(this).toggle($(this).text().toLowerCase().indexOf(searchText) > -1);
+                    });
+                }
+            });
+
+            var rowsPerPage = parseInt($('#showEntriesSelect').val()); // Default rows per page
+            var totalRows = $('#pettycash_table tbody tr').length;
+            var totalPages = Math.ceil(totalRows / rowsPerPage);
+            var currentPage = 1;
+            var maxPaginationButtons = 7;
+
+            function showPage(page, entries) {
+                var start = (page - 1) * entries;
+                var end = start + entries;
+
+                $('#pettycash_table tbody tr').hide();
+                $('#pettycash_table tbody tr').slice(start, end).show();
+            }
+
+            function generatePaginationButtons(totalPages, currentPage) {
+                $('#pagination').empty();
+
+                var startPage = Math.max(1, currentPage - Math.floor(maxPaginationButtons / 2));
+                var endPage = Math.min(totalPages, startPage + maxPaginationButtons - 1);
+
+                if (endPage - startPage + 1 < maxPaginationButtons) {
+                    startPage = Math.max(1, endPage - maxPaginationButtons + 1);
+                }
+
+                $('#pagination').append('<button class="paginationButton dark:bg-gray-800 text-white font-bold px-3 py-2 rounded mr-2 hover:bg-blue-700" data-page="1">&lt;&lt;</button>');
+
+                if (currentPage > 1) {
+                    $('#pagination').append('<button class="paginationButton dark:bg-gray-800 text-white font-bold px-4 py-2 rounded mr-2 hover:bg-blue-700" data-page="' + (currentPage - 1) + '">&lt;</button>');
+                }
+
+                for (var i = startPage; i <= endPage; i++) {
+                    var activeClass = i === currentPage ? 'dark:bg-gray-800' : '';
+                    $('#pagination').append('<button class="paginationButton ' + activeClass + ' text-white font-medium hover:text-white px-4 py-2 rounded-full mr-2 hover:bg-blue-700" data-page="' + i + '">' + i + '</button>');
+                }
+
+                if (currentPage < totalPages) {
+                    $('#pagination').append('<button class="paginationButton dark:bg-gray-800 text-white font-bold px-4 py-2 rounded mr-2 hover:bg-blue-700" data-page="' + (currentPage + 1) + '">&gt;</button>');
+                }
+
+                $('#pagination').append('<button class="paginationButton dark:bg-gray-800 text-white font-bold px-3 py-2 rounded mr-2 hover:bg-blue-700" data-page="' + totalPages + '">&gt;&gt;</button>');
+            }
+
+            showPage(currentPage, rowsPerPage);
+            generatePaginationButtons(totalPages, currentPage);
+
+            $(document).on('click', '.paginationButton', function() {
+                currentPage = parseInt($(this).attr('data-page'));
+                showPage(currentPage, rowsPerPage);
+                generatePaginationButtons(totalPages, currentPage);
+            });
+
+            $('#showEntriesSelect').on('change', function() {
+                rowsPerPage = parseInt($(this).val());
+                totalPages = Math.ceil(totalRows / rowsPerPage);
+                currentPage = 1;
+                showPage(currentPage, rowsPerPage);
+                generatePaginationButtons(totalPages, currentPage);
+            });
+
+        });
+    </script>
+
+{% endblock content %}

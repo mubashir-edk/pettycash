@@ -1,0 +1,92 @@
+{% extends 'index.html' %}
+{% load static %}
+
+{% block head %}
+    <title>Create FederalPettyCash</title>
+    <style>
+        /* Chrome, Safari, Edge, Opera */
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* Firefox */
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+{% endblock head %}
+
+{% block content %}
+
+    <form method="post">
+        {% csrf_token %}
+
+    <div class="flex justify-between">
+        
+        {% if federal_pettycash %}
+            <span class="text-2xl font-bold flex self-end">{{federal_pettycash.voucher_code}}</span>
+        {% else %}
+            <span class="text-2xl font-bold flex self-end">New Voucher</span>
+        {% endif %}
+        <button type="submit" class="bg-blue-700 p-1 px-2 mb-1 text-base font-bold rounded text-white cursor-pointer">Save</button>
+    </div>
+
+    <hr class="border dark:border-gray-800">
+
+    <div class="mt-3">
+
+        <div class="grid grid-cols-2 gap-4">
+
+            <div>
+                <label for="formPettyCashToOrFrom" class="block mb-2 text-sm font-bold text-black">Paid To/Recieved From</label>
+                {{ federal_pettycash_form.to_or_from }}
+            </div>
+
+            <div>
+                <label for="formPettyCashDate" class="block mb-2 text-sm font-bold text-black">Date</label>
+                {{ federal_pettycash_form.created_date }}
+            </div>
+
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mt-3">
+
+            <div>
+                <label for="formPettyCashFlow" class="block mb-2 text-sm font-bold text-black">Type</label>
+                {{ federal_pettycash_form.cash_flow }}
+            </div>
+
+            <div>
+                <label for="formPettyCashCategory" class="block mb-2 text-sm font-bold text-black">Category</label>
+                {{ federal_pettycash_form.category }}
+            </div>
+        
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mt-3">
+
+            <div>
+                <label for="formPettyCashAmount" class="block mb-2 text-sm font-bold text-black">Amount</label>
+                <div class="relative">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/e/ee/Indian_Rupee_symbol.svg" class="h-5 w-5 absolute top-2.5 left-2">
+                    {{ federal_pettycash_form.amount }}
+                </div>
+            </div>
+
+        </div>
+
+        <div class="mt-3">
+        
+            <div>
+                <label for="formPettyCashDescription" class="block mb-2 text-sm font-bold text-black">Description</label>
+                {{ federal_pettycash_form.description }}
+            </div>
+
+        </div>
+
+    </div>
+
+    </form>
+
+{% endblock content %}
